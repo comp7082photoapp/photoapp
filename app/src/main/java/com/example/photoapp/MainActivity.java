@@ -14,10 +14,7 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
-public class MainActivity extends AppCompatActivity implements SearchDialog.SearchDialogListener {
-
-    private String testCaption;
-    private String testTimeStamp;
+public class MainActivity extends AppCompatActivity  {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,18 +33,6 @@ public class MainActivity extends AppCompatActivity implements SearchDialog.Sear
 
     }
 
-    @Override
-    public void applySearch(String caption, String timeStamp) {
-        testCaption = caption;
-        testTimeStamp= timeStamp;
-    }
 
-    public String returnCaption() {
-        return testCaption;
-    }
-
-    public String returnTimeStamp() {
-        return testTimeStamp;
-    }
 
 }

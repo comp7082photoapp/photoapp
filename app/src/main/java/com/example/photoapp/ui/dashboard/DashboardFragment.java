@@ -1,6 +1,5 @@
 package com.example.photoapp.ui.dashboard;
 
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,7 +7,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,21 +26,15 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.example.photoapp.MainActivity;
-import com.example.photoapp.PhotoActivity;
 import com.example.photoapp.R;
-import com.example.photoapp.SearchDialog;
+import com.example.photoapp.SearchActivity;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
-import java.util.Locale;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -61,8 +53,11 @@ public class DashboardFragment extends Fragment {
     static final int REQUEST_IMAGE_CAPTURE = 1;
     String currentPhotoPath;
     static final int REQUEST_TAKE_PHOTO = 1;
-    int correntIndex = 0;
+    public static final int REQUEST_EVALUATE = 0x12;
+    int currentIndex = 0;
     public ArrayList<String> pictureList = new ArrayList<String>();
+
+    public SimpleDateFormat dayFormat = new SimpleDateFormat("yyyyMMdd");
     public SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
     public SimpleDateFormat printFormat = new SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss");
 
@@ -75,8 +70,6 @@ public class DashboardFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_dashboard, container, false);
 
         testActivity = (MainActivity) getActivity();
-        String searchCaption = testActivity.returnCaption();
-        String searchTimeStamp = testActivity.returnTimeStamp();
 
         searchButton = root.findViewById(R.id.searchBtn);
         photoButton = root.findViewById(R.id.photoButton);
@@ -93,7 +86,7 @@ public class DashboardFragment extends Fragment {
             public void onGlobalLayout() {
                 imageView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                 if (pictureList.size() >0){
-                    setPic(pictureList.get(correntIndex));
+                    setPic(pictureList.get(currentIndex));
                 }
             }
         });
@@ -101,24 +94,24 @@ public class DashboardFragment extends Fragment {
         rightButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
-                if (correntIndex+1>=pictureList.size()-1){
-                    correntIndex = pictureList.size()-1;
+                if (currentIndex +1>=pictureList.size()-1){
+                    currentIndex = pictureList.size()-1;
                 }else {
-                    correntIndex+=1;
+                    currentIndex +=1;
                 }
-                setPic(pictureList.get(correntIndex));
+                setPic(pictureList.get(currentIndex));
             }
         });
 
         leftButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
-                if (correntIndex-1<0){
-                    correntIndex = 0;
+                if (currentIndex -1<0){
+                    currentIndex = 0;
                 }else{
-                    correntIndex-=1;
+                    currentIndex -=1;
                 }
-                setPic(pictureList.get(correntIndex));
+                setPic(pictureList.get(currentIndex));
             }
         });
         captionSaveButton.setOnClickListener(new View.OnClickListener(){
@@ -132,7 +125,8 @@ public class DashboardFragment extends Fragment {
         searchButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
-                openDialog();
+                Intent intent = new Intent(getActivity(), SearchActivity.class);
+                startActivityForResult(intent, REQUEST_TAKE_PHOTO);
             }
         });
 
@@ -169,17 +163,12 @@ public class DashboardFragment extends Fragment {
         return root;
     }
 
-    public void openDialog() {
-        SearchDialog searchDialog = new SearchDialog();
-
-        searchDialog.show(getFragmentManager(), "Search Dialog");
-    }
 
     public void changeName(String capition){
         if (capition.isEmpty()){
             capition = "capition";
         }
-        String filename = pictureList.get(correntIndex);
+        String filename = pictureList.get(currentIndex);
         String [] temp = null;
         temp = filename.split("_");
         temp[2] = capition;
@@ -192,7 +181,7 @@ public class DashboardFragment extends Fragment {
         if (!newFile.exists()){
             File file = new File(filename);
             file.renameTo(newFile);
-            pictureList.set(correntIndex,newfilename);
+            pictureList.set(currentIndex,newfilename);
         }
         Log.println(Log.INFO,"info",filename);
         Log.println(Log.INFO,"info",newfilename);
@@ -200,8 +189,19 @@ public class DashboardFragment extends Fragment {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            Log.println(Log.INFO,"info","2");
             setPic(currentPhotoPath);
+        }
+
+        if(requestCode == REQUEST_IMAGE_CAPTURE && resultCode==2) {
+            String caption = data.getStringExtra("caption");
+            String from = data.getStringExtra("from");
+            String to = data.getStringExtra("to");
+
+            search(caption,from,to);
+            Log.println(Log.INFO,"info",caption);
         }
     }
 
@@ -211,7 +211,7 @@ public class DashboardFragment extends Fragment {
         String imageFileName = "JPEG_" + time + "_caption_";
         Log.println(Log.INFO,"info",imageFileName);
         File storageDir = getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        Log.println(Log.INFO,"info",storageDir.getAbsolutePath());
+
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
@@ -229,6 +229,65 @@ public class DashboardFragment extends Fragment {
         Uri contentUri = Uri.fromFile(f);
         mediaScanIntent.setData(contentUri);
         getActivity().sendBroadcast(mediaScanIntent);
+    }
+
+    private void search(String caption,String from,String to){
+        ArrayList<String> temp = new ArrayList<String>();
+        ArrayList<String> tempWithCaption = new ArrayList<String>();
+        for(int i = 0; i<pictureList.size();i++){
+            String name = pictureList.get(i).toLowerCase();
+            String fileCaption = getCaptionByFileName(name);
+            if (fileCaption.contains(caption.toLowerCase())){
+                temp.add(pictureList.get(i));
+            }
+        }
+        if (temp.size()!=0){
+            pictureList = temp;
+            currentPhotoPath = pictureList.get(0);
+            currentIndex = 0;
+        }else{
+            Toast toast = Toast.makeText(getContext(),
+                    "No result",
+                    Toast.LENGTH_SHORT);
+
+            toast.show();
+        }
+
+        try {
+            format.setLenient(false);
+            Date fromDate=dayFormat.parse(from);
+            Date toDate=dayFormat.parse(to);
+
+
+
+            for(int i = 0; i<temp.size();i++){
+                String name = temp.get(i).toLowerCase();
+                Date fileTime = getImageTimeByFileName(name);
+                Log.println(Log.INFO,"info",toDate.toString());
+                Log.println(Log.INFO,"info",fromDate.toString());
+                if (fileTime.getTime() <= toDate.getTime() && fileTime.getTime() >=fromDate.getTime()){
+                    tempWithCaption.add(temp.get(i));
+                }
+            }
+
+            if (tempWithCaption.size()!=0){
+                pictureList = tempWithCaption;
+                currentPhotoPath = pictureList.get(0);
+                currentIndex = 0;
+            }else{
+                Toast toast = Toast.makeText(getContext(),
+                        "No result",
+                        Toast.LENGTH_SHORT);
+
+                toast.show();
+            }
+
+
+        } catch (ParseException e) {
+        }
+
+
+
     }
 
     private void setPic(String currentPhotoPath) {
@@ -256,22 +315,21 @@ public class DashboardFragment extends Fragment {
         Bitmap bitmap  = BitmapFactory.decodeFile(currentPhotoPath, bmOptions);
         imageView.setImageBitmap(bitmap);
 
-        timeTextView.setText(getImageTimeByFileName(currentPhotoPath));
+        timeTextView.setText(printFormat.format(getImageTimeByFileName(currentPhotoPath)));
         captionEditText.setText(getCaptionByFileName(currentPhotoPath));
     }
 
 
-    public String getImageTimeByFileName(String filename){
+    public Date getImageTimeByFileName(String filename){
         String [] temp = null;
         temp = filename.split("_");
         try {
             Date date = format.parse(temp[1]);
-            String dateTime = printFormat.format(date);
-            return dateTime;
+            return date;
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        return "";
+        return (new Date());
     }
 
 
