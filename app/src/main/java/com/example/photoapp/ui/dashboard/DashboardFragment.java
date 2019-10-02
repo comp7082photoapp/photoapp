@@ -130,9 +130,6 @@ public class DashboardFragment extends Fragment {
             }
         });
 
-
-
-
         photoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -257,8 +254,6 @@ public class DashboardFragment extends Fragment {
             format.setLenient(false);
             Date fromDate=dayFormat.parse(from);
             Date toDate=dayFormat.parse(to);
-
-
 
             for(int i = 0; i<temp.size();i++){
                 String name = temp.get(i).toLowerCase();

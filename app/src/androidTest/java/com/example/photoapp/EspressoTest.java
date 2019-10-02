@@ -21,6 +21,7 @@ import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
 import static androidx.test.espresso.action.ViewActions.replaceText;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withClassName;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
@@ -35,6 +36,24 @@ public class EspressoTest {
 
     @Rule
     public ActivityTestRule<MainActivity> mActivityTestRule = new ActivityTestRule<>(MainActivity.class);
+    @Test
+    public void SaveCaptionEspressoTest() {
+        ViewInteraction bottomNavigationItemView = onView(
+                allOf(withId(R.id.navigation_dashboard), withContentDescription("Dashboard"),
+                        childAtPosition(
+                                childAtPosition(
+                                        withId(R.id.nav_view),
+                                        0),
+                                1),
+                        isDisplayed()));
+        bottomNavigationItemView.perform(click());
+
+        onView(withId(R.id.captionEditText)).perform(replaceText("TEST"));
+        onView(withId(R.id.captionSaveButton)).perform(click());
+        onView(withText("TEST")).check(matches(isDisplayed()));
+    }
+
+
 
     @Test
     public void espressoTest() {
@@ -108,4 +127,6 @@ public class EspressoTest {
             }
         };
     }
+
+
 }
