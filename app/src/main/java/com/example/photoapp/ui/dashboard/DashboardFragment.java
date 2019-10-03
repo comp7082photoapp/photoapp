@@ -189,6 +189,8 @@ public class DashboardFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             Log.println(Log.INFO,"info","2");
+            getPictureList();
+            setCurrentIndex();
             setPic(currentPhotoPath);
         }
 
@@ -231,6 +233,7 @@ public class DashboardFragment extends Fragment {
     private void search(String caption,String from,String to){
         ArrayList<String> temp = new ArrayList<String>();
         ArrayList<String> tempWithCaption = new ArrayList<String>();
+        getPictureList();
         for(int i = 0; i<pictureList.size();i++){
             String name = pictureList.get(i).toLowerCase();
             String fileCaption = getCaptionByFileName(name);
@@ -354,6 +357,10 @@ public class DashboardFragment extends Fragment {
             }
         }
         pictureList =  list;
+
     }
 
+    public void setCurrentIndex(){
+        currentIndex = pictureList.indexOf(currentPhotoPath);
+    }
 }
