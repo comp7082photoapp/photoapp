@@ -50,7 +50,7 @@
         android:id="@+id/timeTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="10dp"
         android:text="0"
         app:layout_constraintEnd_toEndOf="@+id/rightButton"
         app:layout_constraintStart_toStartOf="@+id/leftButton"
@@ -60,13 +60,13 @@
         android:id="@+id/captionEditText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="10dp"
         android:ems="10"
         android:inputType="textPersonName"
         android:text="caption"
         app:layout_constraintEnd_toEndOf="@+id/rightButton"
         app:layout_constraintStart_toStartOf="@+id/leftButton"
-        app:layout_constraintTop_toBottomOf="@+id/timeTextView" />
+        app:layout_constraintTop_toBottomOf="@+id/locationTextView" />
 
     <Button
         android:id="@+id/captionSaveButton"
@@ -89,5 +89,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/captionSaveButton"
         app:layout_constraintVertical_bias="0.26" />
+
+    <TextView
+        android:id="@+id/locationTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="location"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/timeTextView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

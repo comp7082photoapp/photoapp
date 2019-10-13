@@ -1,8 +1,13 @@
 package com.example.photoapp.ui.dashboard;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -35,6 +40,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -47,19 +53,47 @@ public class DashboardFragment extends Fragment {
     private TextView timeTextView;
     private ImageView imageView;
     private EditText captionEditText;
+    private TextView locationTextView;
     private DashboardViewModel dashboardViewModel;
     private File picture;
     private MainActivity testActivity;
     static final int REQUEST_IMAGE_CAPTURE = 1;
     String currentPhotoPath;
     static final int REQUEST_TAKE_PHOTO = 1;
-    public static final int REQUEST_EVALUATE = 0x12;
+
     int currentIndex = 0;
     public ArrayList<String> pictureList = new ArrayList<String>();
 
     public SimpleDateFormat dayFormat = new SimpleDateFormat("yyyyMMdd");
     public SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
     public SimpleDateFormat printFormat = new SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss");
+
+    double longitude = 0.0;
+    double latitude = 0.0;
+
+    private final LocationListener locationListener = new LocationListener() {
+        public void onLocationChanged(Location location) {
+            longitude = location.getLongitude();
+            latitude = location.getLatitude();
+
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+    };
+
 
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -79,6 +113,7 @@ public class DashboardFragment extends Fragment {
         imageView = root.findViewById(R.id.imageView);
         captionEditText = root.findViewById(R.id.captionEditText);
         captionSaveButton = root.findViewById(R.id.captionSaveButton);
+        locationTextView = root.findViewById(R.id.locationTextView);
 
         ViewTreeObserver vto = imageView.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -154,12 +189,23 @@ public class DashboardFragment extends Fragment {
                 }
             }
         });
-
-
+        LocationManager lm = (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
+        Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        longitude = location.getLongitude();
+        latitude = location.getLatitude();
+        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 10, locationListener);
 
         return root;
     }
 
+    public void getLocation(String path){
+        try {
+            ExifInterface exif = new ExifInterface(path);
+            String s = exif.getAttribute(ExifInterface.TAG_USER_COMMENT);
+            locationTextView.setText(s);
+        } catch (IOException e) {
+        }
+    }
 
     public void changeName(String capition){
         if (capition.isEmpty()){
@@ -180,18 +226,20 @@ public class DashboardFragment extends Fragment {
             file.renameTo(newFile);
             pictureList.set(currentIndex,newfilename);
         }
-        Log.println(Log.INFO,"info",filename);
-        Log.println(Log.INFO,"info",newfilename);
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            Log.println(Log.INFO,"info","2");
             getPictureList();
             setCurrentIndex();
             setPic(currentPhotoPath);
+            try {
+                setLocation(currentPhotoPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         if(requestCode == REQUEST_IMAGE_CAPTURE && resultCode==2) {
@@ -200,7 +248,6 @@ public class DashboardFragment extends Fragment {
             String to = data.getStringExtra("to");
 
             search(caption,from,to);
-            Log.println(Log.INFO,"info",caption);
         }
     }
 
@@ -208,26 +255,17 @@ public class DashboardFragment extends Fragment {
         // Create an image file name
         String time = format.format(new Date());
         String imageFileName = "JPEG_" + time + "_caption_";
-        Log.println(Log.INFO,"info",imageFileName);
         File storageDir = getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
 
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
+                ".jpeg",         /* suffix */
                 storageDir      /* directory */
         );
 
         // Save a file: path for use with ACTION_VIEW intents
         currentPhotoPath = image.getAbsolutePath();
         return image;
-    }
-
-    private void galleryAddPic() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(currentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        getActivity().sendBroadcast(mediaScanIntent);
     }
 
     private void search(String caption,String from,String to){
@@ -261,8 +299,6 @@ public class DashboardFragment extends Fragment {
             for(int i = 0; i<temp.size();i++){
                 String name = temp.get(i).toLowerCase();
                 Date fileTime = getImageTimeByFileName(name);
-                Log.println(Log.INFO,"info",toDate.toString());
-                Log.println(Log.INFO,"info",fromDate.toString());
                 if (fileTime.getTime() <= toDate.getTime() && fileTime.getTime() >=fromDate.getTime()){
                     tempWithCaption.add(temp.get(i));
                 }
@@ -303,7 +339,6 @@ public class DashboardFragment extends Fragment {
 
         // Determine how much to scale down the image
         int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
-        Log.println(Log.INFO,"info",currentPhotoPath);
 
         // Decode the image file into a Bitmap sized to fill the View
         bmOptions.inJustDecodeBounds = false;
@@ -315,6 +350,7 @@ public class DashboardFragment extends Fragment {
 
         timeTextView.setText(printFormat.format(getImageTimeByFileName(currentPhotoPath)));
         captionEditText.setText(getCaptionByFileName(currentPhotoPath));
+        getLocation(currentPhotoPath);
     }
 
 
@@ -362,5 +398,14 @@ public class DashboardFragment extends Fragment {
 
     public void setCurrentIndex(){
         currentIndex = pictureList.indexOf(currentPhotoPath);
+    }
+
+    public void setLocation(String file) throws IOException {
+        ExifInterface exif = new ExifInterface(file);
+        Log.println(Log.INFO,"info",file);
+        String lat = String.format("%.5f",latitude);
+        String lon = String.format("%.5f",longitude);
+        exif.setAttribute(ExifInterface.TAG_USER_COMMENT, lat + " " + lon);
+        exif.saveAttributes();
     }
 }
