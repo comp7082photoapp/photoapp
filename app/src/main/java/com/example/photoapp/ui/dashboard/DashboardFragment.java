@@ -75,8 +75,8 @@ public class DashboardFragment extends Fragment {
     public SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
     public SimpleDateFormat printFormat = new SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss");
 
-    double longitude = 0.0;
-    double latitude = 0.0;
+    private double longitude = 0.0;
+    private double latitude = 0.0;
 
 
     private final LocationListener locationListener = new LocationListener() {
@@ -202,8 +202,10 @@ public class DashboardFragment extends Fragment {
         });
         LocationManager lm = (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
         Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        longitude = location.getLongitude();
-        latitude = location.getLatitude();
+        if(location!= null) {
+            longitude = location.getLongitude();
+            latitude = location.getLatitude();
+        }
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 10, locationListener);
 
         return root;
