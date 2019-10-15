@@ -2,6 +2,7 @@ package com.example.photoapp.ui.dashboard;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
@@ -9,17 +10,22 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ShareActionProvider;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,6 +36,7 @@ import androidx.fragment.app.Fragment;
 
 import androidx.lifecycle.ViewModelProviders;
 
+import com.example.photoapp.BuildConfig;
 import com.example.photoapp.MainActivity;
 import com.example.photoapp.R;
 import com.example.photoapp.SearchActivity;
@@ -70,6 +77,7 @@ public class DashboardFragment extends Fragment {
 
     double longitude = 0.0;
     double latitude = 0.0;
+
 
     private final LocationListener locationListener = new LocationListener() {
         public void onLocationChanged(Location location) {
@@ -116,6 +124,9 @@ public class DashboardFragment extends Fragment {
         locationTextView = root.findViewById(R.id.locationTextView);
 
         ViewTreeObserver vto = imageView.getViewTreeObserver();
+
+        setHasOptionsMenu(true);
+
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
@@ -197,6 +208,33 @@ public class DashboardFragment extends Fragment {
 
         return root;
     }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu, menu);
+        super.onCreateOptionsMenu(menu,inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.share) {
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("image/*");
+            File fileImage = new File(pictureList.get(currentIndex));
+            Uri uriImage = Uri.fromFile(fileImage);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                uriImage = FileProvider.getUriForFile(getActivity(), "com.example.android.fileprovider", fileImage);
+            }
+
+            intent.putExtra(Intent.EXTRA_STREAM, uriImage);
+            startActivity(Intent.createChooser(intent,"ShareVia"));
+        }
+        return true;
+    }
+
+
 
     public void getLocation(String path){
         try {
